@@ -21,6 +21,8 @@ class OpportunitiesController < ApplicationController
   before_filter :load_settings, :except => [ :new, :destroy ]
   before_filter :get_data_for_sidebar, :only => :index
   before_filter :auto_complete, :only => :auto_complete
+  before_filter :set_entities
+  
   after_filter  :update_recently_viewed, :only => :show
 
   # GET /opportunities
@@ -31,7 +33,7 @@ class OpportunitiesController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
-      format.js   # index.js.rjs
+      format.js {render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @opportunities }
     end
   end
@@ -66,7 +68,7 @@ class OpportunitiesController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @opportunity }
     end
 
@@ -83,6 +85,9 @@ class OpportunitiesController < ApplicationController
     @accounts = Account.my(@current_user).all(:order => "name")
     if params[:previous] =~ /(\d+)\z/
       @previous = Opportunity.my(@current_user).find($1)
+    end
+    respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
     end
 
   rescue ActiveRecord::RecordNotFound
@@ -102,7 +107,7 @@ class OpportunitiesController < ApplicationController
           @opportunities = get_opportunities
           get_data_for_sidebar
         end
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @opportunity, :status => :created, :location => @opportunity }
       else
         @users = User.except(@current_user).all
@@ -118,7 +123,7 @@ class OpportunitiesController < ApplicationController
         end
         @contact = Contact.find(params[:contact]) unless params[:contact].blank?
         @campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @opportunity.errors, :status => :unprocessable_entity }
       end
     end
@@ -133,7 +138,7 @@ class OpportunitiesController < ApplicationController
     respond_to do |format|
       if @opportunity.update_with_account_and_permissions(params)
         get_data_for_sidebar if called_from_index_page?
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { head :ok }
       else
         @users = User.except(@current_user).all
@@ -143,7 +148,7 @@ class OpportunitiesController < ApplicationController
         else
           @account = Account.new(:user => @current_user)
         end
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { render :xml => @opportunity.errors, :status => :unprocessable_entity }
       end
     end
@@ -212,7 +217,11 @@ class OpportunitiesController < ApplicationController
     @opportunities = get_opportunities(:page => 1)
     render :action => :index
   end
-
+  
+  def set_entities
+    @entity, @has_account, @title, @focus=@opportunity, true, @opportunity.name, 'opportunity_name'
+  end
+  
   private
   #----------------------------------------------------------------------------
   def get_opportunities(options = { :page => nil, :query => nil })
@@ -249,7 +258,7 @@ class OpportunitiesController < ApplicationController
         @opportunities = get_opportunities
         if @opportunities.blank?
           @opportunities = get_opportunities(:page => current_page - 1) if current_page > 1
-          render :action => :index and return
+          render :template => "common/_destroy.js.rjs" and return
         end
       else # Called from related asset.
         self.current_page = 1

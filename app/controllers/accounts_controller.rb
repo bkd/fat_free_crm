@@ -19,6 +19,8 @@ class AccountsController < ApplicationController
   before_filter :require_user
   before_filter :set_current_tab, :only => [ :index, :show ]
   before_filter :auto_complete, :only => :auto_complete
+  before_filter :set_entities
+  
   after_filter  :update_recently_viewed, :only => :show
 
   # GET /accounts
@@ -29,7 +31,7 @@ class AccountsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
-      format.js   # index.js.rjs
+      ormat.js   { render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @accounts }
     end
   end
@@ -63,7 +65,7 @@ class AccountsController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @account }
     end
   end
@@ -75,6 +77,9 @@ class AccountsController < ApplicationController
     @users = User.except(@current_user).all
     if params[:previous] =~ /(\d+)\z/
       @previous = Account.my(@current_user).find($1)
+    end
+   respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
     end
 
   rescue ActiveRecord::RecordNotFound
@@ -94,10 +99,10 @@ class AccountsController < ApplicationController
         # None: account can only be created from the Accounts index page, so we 
         # don't have to check whether we're on the index page.
         @accounts = get_accounts
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @account, :status => :created, :location => @account }
       else
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @account.errors, :status => :unprocessable_entity }
       end
     end
@@ -111,11 +116,11 @@ class AccountsController < ApplicationController
 
     respond_to do |format|
       if @account.update_with_permissions(params[:account], params[:users])
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { head :ok }
       else
         @users = User.except(@current_user).all # Need it to redraw [Edit Account] form.
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { render :xml => @account.errors, :status => :unprocessable_entity }
       end
     end
@@ -177,6 +182,10 @@ class AccountsController < ApplicationController
     render :action => :index
   end
 
+  def set_entities
+     @entity, @title, @focus=@account, @account.name, 'account_name'
+  end
+   
   private
   #----------------------------------------------------------------------------
   def get_accounts(options = { :page => nil, :query => nil })
@@ -210,7 +219,7 @@ class AccountsController < ApplicationController
       @accounts = get_accounts
       if @accounts.blank?
         @accounts = get_accounts(:page => current_page - 1) if current_page > 1
-        render :action => :index and return
+        render :template => "common/_destroy.js.rjs" and return
       end
       # At this point render default destroy.js.rjs template.
     else # :html request

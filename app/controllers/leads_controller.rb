@@ -20,6 +20,8 @@ class LeadsController < ApplicationController
   before_filter :get_data_for_sidebar, :only => :index
   before_filter :set_current_tab, :only => [ :index, :show ]
   before_filter :auto_complete, :only => :auto_complete
+  before_filter :set_entities
+  
   after_filter  :update_recently_viewed, :only => :show
 
   # GET /leads
@@ -30,7 +32,7 @@ class LeadsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.erb
-      format.js   # index.js.rjs
+      format.js {render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @leads }
     end
   end
@@ -64,7 +66,7 @@ class LeadsController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @lead }
     end
 
@@ -80,6 +82,9 @@ class LeadsController < ApplicationController
     @campaigns = Campaign.my(@current_user).all(:order => "name")
     if params[:previous] =~ /(\d+)\z/
       @previous = Lead.my(@current_user).find($1)
+    end
+    respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
     end
 
   rescue ActiveRecord::RecordNotFound
@@ -101,10 +106,10 @@ class LeadsController < ApplicationController
           @leads = get_leads
           get_data_for_sidebar
         end
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @lead, :status => :created, :location => @lead }
       else
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @lead.errors, :status => :unprocessable_entity }
       end
     end
@@ -119,12 +124,12 @@ class LeadsController < ApplicationController
     respond_to do |format|
       if @lead.update_with_permissions(params[:lead], params[:users])
         get_data_for_sidebar if called_from_index_page?
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { head :ok }
       else
         @users = User.except(@current_user).all
         @campaigns = Campaign.my(@current_user).all(:order => "name")
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { render :xml => @lead.errors, :status => :unprocessable_entity }
       end
     end
@@ -268,6 +273,10 @@ class LeadsController < ApplicationController
     render :action => :index
   end
 
+  def set_entities
+    @entity, @title, @focus=@lead, @lead.full_name, 'lead_first_name'
+  end
+
   private
   #----------------------------------------------------------------------------
   def get_leads(options = { :page => nil, :query => nil })
@@ -304,7 +313,7 @@ class LeadsController < ApplicationController
         @leads = get_leads                        # Get leads for current page.
         if @leads.blank?                          # If no lead on this page then try the previous one.
           @leads = get_leads(:page => current_page - 1) if current_page > 1
-          render :action => :index and return     # And reload the whole list even if it's empty.
+          render :template => "common/_destroy.js.rjs" and return
         end
       else                                        # Called from related asset.
         self.current_page = 1                     # Reset current page to 1 to make sure it stays valid.

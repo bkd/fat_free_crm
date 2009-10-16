@@ -19,7 +19,9 @@ class TasksController < ApplicationController
   before_filter :require_user
   before_filter :update_sidebar, :only => :index
   before_filter :set_current_tab, :only => [ :index, :show ]
-
+  before_filter :set_entities
+  
+  
   # GET /tasks
   # GET /tasks.xml
   #----------------------------------------------------------------------------
@@ -29,6 +31,7 @@ class TasksController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
+      format.js {render :template => "common/_index.js.rjs" }
       # Hash keys must be strings... symbols generate "undefined method 'singularize' error"
       format.xml  { render :xml => @tasks.inject({}) { |tasks, (k,v)| tasks[k.to_s] = v; tasks } }
     end
@@ -59,7 +62,7 @@ class TasksController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @task }
     end
 
@@ -79,6 +82,9 @@ class TasksController < ApplicationController
     if params[:previous] =~ /(\d+)\z/
       @previous = Task.tracked_by(@current_user).find($1)
     end
+    respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
+    end
 
   rescue ActiveRecord::RecordNotFound
     @previous ||= $1.to_i
@@ -95,10 +101,10 @@ class TasksController < ApplicationController
     respond_to do |format|
       if @task.save
         update_sidebar if called_from_index_page?
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @task, :status => :created, :location => @task }
       else
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @task.errors, :status => :unprocessable_entity }
       end
     end
@@ -127,10 +133,10 @@ class TasksController < ApplicationController
           end
           update_sidebar
         end
-        format.js   # update.js.rjs
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { head :ok }
       else
-        format.js   # update.js.rjs
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { render :xml => @task.errors, :status => :unprocessable_entity }
       end
     end
@@ -154,7 +160,7 @@ class TasksController < ApplicationController
 
     update_sidebar if called_from_index_page?
     respond_to do |format|
-      format.js   # destroy.js.rjs
+      render :template => "common/_destroy.js.rjs"
       format.xml  { head :ok }
     end
 
@@ -196,6 +202,10 @@ class TasksController < ApplicationController
         filters.delete(params[:filter])
       end
     end
+  end
+
+  def set_entities
+    @entity, @title, @focus=@task, @task.name, 'task_name'
   end
 
   private

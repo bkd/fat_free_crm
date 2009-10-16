@@ -19,6 +19,8 @@ class ContactsController < ApplicationController
   before_filter :require_user
   before_filter :set_current_tab, :only => [ :index, :show ]
   before_filter :auto_complete, :only => :auto_complete
+  before_filter :set_entities
+  
   after_filter  :update_recently_viewed, :only => :show
 
   # GET /contacts
@@ -29,7 +31,7 @@ class ContactsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
-      format.js   # index.js.rjs
+      format.js {render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @contacts }
     end
   end
@@ -65,7 +67,7 @@ class ContactsController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @contact }
     end
 
@@ -83,6 +85,9 @@ class ContactsController < ApplicationController
     if params[:previous] =~ /(\d+)\z/
       @previous = Contact.my(@current_user).find($1)
     end
+    respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
+    end
 
   rescue ActiveRecord::RecordNotFound
     @previous ||= $1.to_i
@@ -98,7 +103,7 @@ class ContactsController < ApplicationController
     respond_to do |format|
       if @contact.save_with_account_and_permissions(params)
         @contacts = get_contacts if called_from_index_page?
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @contact, :status => :created, :location => @contact }
       else
         @users = User.except(@current_user).all
@@ -113,7 +118,7 @@ class ContactsController < ApplicationController
           end
         end
         @opportunity = Opportunity.find(params[:opportunity]) unless params[:opportunity].blank?
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @contact.errors, :status => :unprocessable_entity }
       end
     end
@@ -127,7 +132,7 @@ class ContactsController < ApplicationController
 
     respond_to do |format|
       if @contact.update_with_account_and_permissions(params)
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { head :ok }
       else
         @users = User.except(@current_user).all
@@ -137,7 +142,7 @@ class ContactsController < ApplicationController
         else
           @account = Account.new(:user => @current_user)
         end
-        format.js
+        format.js   { render :template => "common/_update.js.rjs" }
         format.xml  { render :xml => @contact.errors, :status => :unprocessable_entity }
       end
     end
@@ -212,6 +217,10 @@ class ContactsController < ApplicationController
     render :action => :index
   end
 
+  def set_entities
+     @entity, @has_account, @title, @focus=@contact, true, @contact.full_name, 'contact_first_name'
+  end
+
   private
   #----------------------------------------------------------------------------
   def get_contacts(options = { :page => nil, :query => nil })
@@ -246,7 +255,7 @@ class ContactsController < ApplicationController
         @contacts = get_contacts
         if @contacts.blank?
           @contacts = get_contacts(:page => current_page - 1) if current_page > 1
-          render :action => :index and return
+          render :template => "common/_destroy.js.rjs" and return
         end
       else
         self.current_page = 1

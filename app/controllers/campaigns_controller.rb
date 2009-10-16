@@ -20,6 +20,8 @@ class CampaignsController < ApplicationController
   before_filter :get_data_for_sidebar, :only => :index
   before_filter :set_current_tab, :only => [ :index, :show ]
   before_filter :auto_complete, :only => :auto_complete
+  before_filter :set_entities
+  
   after_filter  :update_recently_viewed, :only => :show
 
   # GET /campaigns
@@ -30,7 +32,7 @@ class CampaignsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
-      format.js   # index.js.rjs
+      format.js {render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @campaigns }
     end
   end
@@ -64,7 +66,7 @@ class CampaignsController < ApplicationController
     end
 
     respond_to do |format|
-      format.js   # new.js.rjs
+      format.js   { render :template => "common/_new.js.rjs" }
       format.xml  { render :xml => @campaign }
     end
   end
@@ -76,6 +78,9 @@ class CampaignsController < ApplicationController
     @users = User.except(@current_user).all
     if params[:previous] =~ /(\d+)\z/
       @previous = Campaign.my(@current_user).find($1)
+    end
+    respond_to do |format|
+      format.js       { render :template => "common/_edit.js.rjs" }
     end
 
   rescue ActiveRecord::RecordNotFound
@@ -94,10 +99,10 @@ class CampaignsController < ApplicationController
       if @campaign.save_with_permissions(params[:users])
         @campaigns = get_campaigns
         get_data_for_sidebar
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @campaign, :status => :created, :location => @campaign }
       else
-        format.js   # create.js.rjs
+        format.js   { render :template => "common/_create.js.rjs" }
         format.xml  { render :xml => @campaign.errors, :status => :unprocessable_entity }
       end
     end
@@ -186,6 +191,10 @@ class CampaignsController < ApplicationController
     render :action => :index
   end
 
+  def set_entities
+    @entity, @title, @focus=@campaign, @campaign.name, 'campaign_name'  
+  end
+  
   private
   #----------------------------------------------------------------------------
   def get_campaigns(options = { :page => nil, :query => nil })
@@ -221,7 +230,7 @@ class CampaignsController < ApplicationController
       @campaigns = get_campaigns
       if @campaigns.blank?
         @campaigns = get_campaigns(:page => current_page - 1) if current_page > 1
-        render :action => :index and return
+        render :template => "common/_destroy.js.rjs" and return
       end
       # At this point render destroy.js.rjs
     else # :html request
