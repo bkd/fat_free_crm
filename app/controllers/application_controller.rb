@@ -22,6 +22,8 @@ class ApplicationController < ActionController::Base
 
   filter_parameter_logging :password, :password_confirmation
   before_filter :set_context
+  # Clean all input data, remove JS and unwanted HTML tags for all fields
+  before_filter :sanitize_params 
   before_filter "hook(:app_before_filter, self)"
   after_filter "hook(:app_after_filter, self)"
 
