@@ -31,7 +31,7 @@ class AccountsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.haml
-      ormat.js   { render :template => "common/_index.js.rjs" }
+      format.js   { render :template => "common/_index.js.rjs" }
       format.xml  { render :xml => @accounts }
     end
   end
