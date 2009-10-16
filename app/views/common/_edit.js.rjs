@@ -1,0 +1,54 @@
+id = dom_id(@entity)
+model = controller_name.singularize
+
+if params[:cancel] == "true"                                                    #<!--------------- edit form is visible
+  if model=='task'
+     partial = (@task.assigned_to && @task.assigned_to != @current_user.id) ? "assigned" : "pending"
+     page[id].replace_html :partial => partial, :collection => [ @task ], :locals => { :bucket => @task.bucket }
+  else
+    if called_from_landing_page?
+      page.call "crm.flip_form", "edit_" << model
+      page.call "crm.set_title", "edit_" << model, @title
+    else                                           
+      page[id].replace :partial => model, :collection => [ @entity ]
+    end
+  end
+
+else                                                                          
+  if params[:cancel].blank?                                                      #<!--------------- edit has been updated
+    if model=='task'
+      partial = (@task.assigned_to && @task.assigned_to != @current_user.id) ? "assigned" : "pending"
+      page[id].replace_html :partial => partial, :collection => [ @task ], :locals => { :bucket => @task.bucket }
+    end
+    if @previous                                  
+      if @previous.is_a?(model.titleize)
+        page[dom_id(@previous)].replace :partial => model, :collection => [ @previous ]
+      else
+        page.call "crm.flick", model << "_#{@previous}", :remove
+      end
+    end
+    page.call "crm.highlight_off", id               
+    page.call "crm.hide_form", "create_#{model}"                                  #<!--------------- close visible create form
+    page[id].replace_html :partial => "edit"        
+
+  elsif params[:cancel] == "false"                                                #<!--------------- edit form has been closed
+    page["edit_#{model}"].replace_html :partial => "edit"
+    if model=='lead' 
+      unless %w(converted rejected).include? @lead.status
+        page.call "crm.hide_form", :convert_lead
+      end
+    end
+    page.call "crm.flip_form", "edit_#{model}"
+    page.call "crm.set_title", "edit_" << model, "Edit #{@title}"
+  end
+  
+  page.call "crm.create_or_select_account", request.referer =~ /\/accounts\// || @account.id.blank? if @has_account
+  if model == 'campaign'
+    page.call "crm.date_select_popup", :campaign_starts_on 
+    page.call "crm.date_select_popup", :campaign_ends_on 
+  end
+  page.call "crm.date_select_popup", "opportunity_closes_on" if model == 'opportunity'
+  page.call "crm.date_select_popup", :task_calendar, :task_bucket if model == 'task'
+  page[@focus].focus
+end
+

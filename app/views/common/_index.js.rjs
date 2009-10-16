@@ -1,0 +1,7 @@
+
+unless @entities.blank?
+  page[@entity_type.pluralize].replace_html render(:partial => @entity_type, :collection => @entities)
+else
+  page[@entity_type.pluralize].replace_html render(:partial => "common/empty")
+end
+page[:paginate].replace_html render(:partial => "common/paginate")

@@ -1,0 +1,15 @@
+model = controller_name.singularize
+unless model=='task' 
+  page[dom_id(@entity)].visual_effect :blind_up, :duration => 0.25
+else
+  page["list_#{@empty_bucket}"].visual_effect :fade, :duration => 0.5 if @empty_bucket 
+end
+if called_from_index_page?
+  if %w(opportunity lead task).include?(model)
+    page << refresh_sidebar(:index, :filters) 
+  end
+end
+page[:recently].replace :partial => "common/recently"
+page[:paginate].replace_html render(:partial => "common/paginate")
+
+

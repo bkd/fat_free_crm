@@ -1,0 +1,62 @@
+
+model = controller_name.singularize
+id = called_from_landing_page? ? "edit_#{model}" : dom_id(@entity) 
+if @entity.errors.empty?                                      #<!--------------- form was validated ok
+
+  if called_from_landing_page?                                #<!--------------- showing the single record
+
+    page.call "crm.flip_form", "edit_#{model}"
+    page.call "crm.set_title", "edit_#{model}", @entity.instance_eval(@title) 
+    page << refresh_sidebar(:show, :summary)
+    if model == 'task'
+        if @task.assigned_to != @task_before_update.assigned_to
+          page << reassign(id)
+        elsif @task.bucket != @task_before_update.bucket
+          page << reschedule(id)
+        else
+          page << replace_content(@task, @task.bucket)
+        end
+    end
+  else                                                        #<!--------------- showing index (list view) of records
+    
+    page[:recently].replace :partial => "common/recently"
+    if model=='task'
+      page << replace_content(@task) 
+    else
+      page[id].replace :partial => model, :collection => [ @entity ] 
+    end
+    
+    if %w(account contact).include?(model)
+      page << refresh_sidebar(:index)
+    else
+      page << refresh_sidebar(:index, :filters)
+    end 
+    page[id].visual_effect :highlight, :duration => 1.0
+  end  
+  
+else                                                            #<!--------------- form contained errors
+  page.call "crm.create_or_select_account", request.referer =~ /\/accounts\// || @account.id.blank? if %w(contact lead opportunity).include?(model)
+  page.call "crm.date_select_popup", "opportunity_closes_on" if model=='opportunity'
+  page.call "crm.date_select_popup", :task_calendar, :task_bucket if model=='task'
+  page[id].replace_html :partial => "edit"
+  page[@focus].focus
+  
+  if model == 'campaign'
+    page.call "crm.date_select_popup", :campaign_starts_on 
+    page.call "crm.date_select_popup", :campaign_ends_on
+    if error_message_on(@entity, :name).blank? and !error_message_on(@entity, :ends_on).blank?
+      page[:campaign_ends_on].focus
+    end
+  end
+  
+  if model == 'lead'
+      if error_message_on(@lead, :first_name).blank? and !error_message_on(@lead, :last_name).blank?
+        page[:lead_last_name].focus
+      else
+        page[:lead_first_name].focus
+      end
+  end
+      
+  page[id].visual_effect :shake, :duration => 0.25, :distance => 6
+end
+

@@ -1,0 +1,24 @@
+
+model = controller_name.singularize
+page.call "crm.flick", :empty, :toggle
+page.call "crm.hide_form", :options if called_from_index_page? unless  model=='task'
+page.call "crm.flip_form", "create_#{model}"
+if params[:cancel] != "true"
+  page["create_#{model}"].replace_html :partial => "create"
+  page.call "crm.set_title", "create_#{model}"
+  page.call "crm.create_or_select_account", request.referer =~ /\/accounts\// || @account.id.blank? if @has_account 
+  page.call "crm.date_select_popup", "opportunity_closes_on" if model=='opportunity'
+  page.call "crm.date_select_popup", :task_calendar, :task_bucket if model=='task'
+  page.call "crm.date_select_popup", :campaign_starts_on if model=='campaign'
+  page.call "crm.date_select_popup", :campaign_ends_on if model=='campaign'
+else
+  if model=='task'
+    page.call "crm.set_title", "create_#{model}", (@view == "assigned" ? "Assigned Tasks" : "Tasks") 
+  else 
+    page.call "crm.set_title", "create_#{model}", controller_name.titleize
+  end
+end
+
+
+
+
