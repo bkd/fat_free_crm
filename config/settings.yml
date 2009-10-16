@@ -30,6 +30,7 @@
 # http://www.domain.com/a/crm => :base_url: "/a/crm" # (without trailing slash)
 
 :base_url: ""
+:application_name: "Fat Free CRM"
 
 :tabs: [
   { :active : true,  :text : "Dashboard",     :url : { :controller : "/"              } },

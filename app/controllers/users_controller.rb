@@ -72,7 +72,7 @@ class UsersController < ApplicationController
         flash[:notice] = "Your account has been created and is awating approval by the system administrator."
         redirect_to login_url
       else
-        flash[:notice] = "Successfull signup, welcome to Fat Free CRM!"
+        flash[:notice] = "Successfull signup, welcome to #{Setting.application_name}!"
         redirect_back_or_default profile_url
       end
     else

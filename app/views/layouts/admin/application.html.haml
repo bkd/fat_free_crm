@@ -2,7 +2,8 @@
 %html{ :xmlns => "http://www.w3.org/1999/xhtml", "xml:lang" => :en,  :lang => :en }
   %head
     %meta{ "http-equiv" => "Content-Type", :content => "text/html; charset=utf-8" }
-    %title Fat Free CRM Administration
+    %title 
+      ==#{Setting.application_name} Administration
     == <!-- #{controller.controller_name} : #{controller.action_name} -->
     = stylesheet_link_tag "screen", :cache => "cache/all"
     = stylesheet_link_tag "calendar_date_select/default.css"

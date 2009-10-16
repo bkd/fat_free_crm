@@ -30,7 +30,7 @@ class AuthenticationsController < ApplicationController
     @authentication = Authentication.new(params[:authentication])
 
     if @authentication.save && !@authentication.user.suspended?
-      flash[:notice] = "Welcome to Fat Free CRM!"
+      flash[:notice] = "Welcome to #{Setting.application_name}!"
       if @authentication.user.login_count > 1 && @authentication.user.last_login_at?
         flash[:notice] << " Your last login was on " << @authentication.user.last_login_at.to_s(:mmddhhss)
       end
